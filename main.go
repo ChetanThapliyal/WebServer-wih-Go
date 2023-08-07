@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 )
@@ -12,24 +13,51 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method != "GET" {
-		http.Error(w, "Method is not suppored", http.StatusNotFound)
+		http.Error(w, "Method is not supported", http.StatusNotFound)
 		return
 	}
-	fmt.Fprintf(w, "Hello there")
 
+	tmpl, err := template.ParseFiles("./static/hello.html")
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Template rendering error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func formHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		fmt.Fprintf(w, "ParseForm() err: %v", err)
+		http.Error(w, "ParseForm() err", http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "POST Request Successful")
+
 	name := r.FormValue("name")
 	address := r.FormValue("address")
-	fmt.Fprintf(w, "Name = %s\n", name)
-	fmt.Fprintf(w, "Address = ", address)
 
+	data := struct {
+		Name    string
+		Address string
+	}{
+		Name:    name,
+		Address: address,
+	}
+
+	tmpl, err := template.ParseFiles("./static/result.html")
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Template rendering error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {
@@ -43,5 +71,4 @@ func main() {
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
-
 }
